@@ -81,6 +81,11 @@ class Z3Model(Model):
         z3_res = self.z3_model.eval(titem, model_completion=model_completion)
         return self.converter.back(z3_res, model=self.z3_model)
 
+    # CV: CHANGE
+    def get_z3_value(self, formula):
+        titem = self.converter.convert(formula)
+        return self.z3_model.eval(titem, model_completion=True)
+
     def iterator_over(self, language):
         for x in language:
             yield x, self.get_value(x, model_completion=True)
@@ -434,6 +439,8 @@ class Z3Converter(Converter, DagWalker):
                 return z3.ArrayRef
             elif type_.is_bv_type():
                 return z3.BitVecRef
+            elif type_.is_custom_type(): # CV: add custom type handling
+                return z3.SortRef
             else:
                 raise NotImplementedError(formula)
         elif formula.node_type() in op.ARRAY_OPERATORS:
@@ -851,6 +858,8 @@ class Z3Converter(Converter, DagWalker):
                                    self._z3_to_type(sort.range()))
         elif sort.kind() == z3.Z3_BV_SORT:
             return types.BVType(sort.size())
+        elif sort.kind() == z3.Z3_UNINTERPRED_SORT:
+            return types.Type(str(sort)) # CV: get the Type information back into pysmt
         else:
             raise NotImplementedError("Unsupported sort in conversion: %s" % sort)
 
